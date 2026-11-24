@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import express, {
@@ -27,7 +26,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
-      "https://learnova-one-psi.vercel.app",
+    "https://learnova-one-psi.vercel.app",
     "http://10.28.168.131:5173",
     "http://10.28.168.131:5174",
   ],
@@ -55,6 +54,8 @@ async function activateSession(
   const sessionId = randomUUID();
   const client = createUserSupabaseClient(accessToken);
 
+  console.log("[SESSION] Creating session...");
+
   const { data, error } = await (client as any).rpc(
     "start_user_session",
     {
@@ -64,8 +65,17 @@ async function activateSession(
   );
 
   if (error) {
-    throw new Error("SESSION_CREATION_FAILED");
+    console.error("[SESSION] Supabase RPC failed:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+
+    throw error;
   }
+
+  console.log("[SESSION] Session created successfully.");
 
   return { sessionId, sessionInfo: data };
 }
