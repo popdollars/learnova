@@ -1,0 +1,57 @@
+/* Minimal, data-first Learnova student workspace */
+.minimal-app .page-content { max-width: 1440px; }
+.minimal-page-content { padding-top: 34px; }
+.minimal-welcome { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:30px; }
+.minimal-eyebrow { display:block; color:#78827d; font-size:10px; font-weight:800; letter-spacing:.14em; margin-bottom:9px; }
+.minimal-welcome h1 { margin:0; color:#17231d; font-size:clamp(27px,3vw,38px); line-height:1.15; letter-spacing:-.045em; }
+.minimal-welcome p,.minimal-section-heading p { color:#78827d; margin:10px 0 0; font-size:14px; }
+.minimal-date,.minimal-count { color:#78827d; font-size:12px; white-space:nowrap; }
+.minimal-stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:34px; }
+.minimal-stat-grid article { min-height:126px; padding:20px; border:1px solid #e8ece8; border-radius:13px; background:#fff; display:flex; flex-direction:column; gap:7px; }
+.minimal-stat-grid article span { color:#78827d; font-size:12px; }
+.minimal-stat-grid article strong { color:#17231d; font-size:30px; letter-spacing:-.04em; }
+.minimal-stat-grid article small { color:#929b95; font-size:11px; }
+.minimal-section { margin:0 0 34px; }
+.minimal-section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:17px; }
+.minimal-section-heading h2,.minimal-section h2 { color:#17231d; font-size:22px; letter-spacing:-.035em; margin:0; }
+.minimal-text-button { display:inline-flex; align-items:center; gap:6px; border:0; background:transparent; color:#315c47; font-weight:700; font-size:12px; cursor:pointer; padding:8px 0; }
+.minimal-course-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.minimal-course-card { display:flex; gap:14px; min-width:0; padding:19px; border:1px solid #e8ece8; border-radius:13px; background:#fff; }
+.minimal-course-mark { width:40px; height:40px; flex:0 0 40px; display:grid; place-items:center; color:#315c47; background:#edf3ef; border-radius:11px; }
+.minimal-course-main { min-width:0; flex:1; }
+.minimal-muted { color:#89938d; font-size:10px; font-weight:800; letter-spacing:.1em; }
+.minimal-course-main h3,.minimal-record-card h3 { margin:5px 0 7px; color:#1c2922; font-size:15px; }
+.minimal-course-main p,.minimal-record-card p { color:#818b85; font-size:12px; line-height:1.5; margin:0 0 12px; }
+.minimal-progress-meta { display:flex; justify-content:space-between; gap:8px; color:#89938d; font-size:10px; margin:14px 0 7px; }
+.minimal-progress-meta strong { color:#315c47; }
+.minimal-progress { height:5px; overflow:hidden; background:#edf0ed; border-radius:8px; }
+.minimal-progress span { display:block; height:100%; background:#527b63; border-radius:8px; }
+.minimal-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; min-height:132px; padding:25px; text-align:center; color:#8a948e; background:#fff; border:1px dashed #dce3dd; border-radius:13px; font-size:12px; }
+.minimal-empty strong { color:#34433a; font-size:14px; }
+.minimal-record-list { border:1px solid #e8ece8; border-radius:13px; background:#fff; overflow:hidden; }
+.minimal-record-row { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:16px 19px; border-bottom:1px solid #edf0ed; }
+.minimal-record-row:last-child { border-bottom:0; }
+.minimal-record-row div { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.minimal-record-row strong { color:#26352c; font-size:13px; }
+.minimal-record-row span { color:#89938d; font-size:11px; }
+.minimal-record-card { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:19px; border-bottom:1px solid #edf0ed; }
+.minimal-record-card:last-child { border-bottom:0; }
+.minimal-score { display:flex; flex-direction:column; align-items:flex-end; gap:4px; color:#315c47; white-space:nowrap; }
+.minimal-score strong { font-size:17px; }
+.minimal-score span { color:#89938d; font-size:11px; }
+.minimal-placeholder { min-height:390px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:35px; border:1px solid #e8ece8; border-radius:15px; background:#fff; }
+.minimal-placeholder-icon { width:54px; height:54px; display:grid; place-items:center; border-radius:15px; background:#edf3ef; color:#315c47; margin-bottom:20px; }
+.minimal-placeholder h2 { color:#17231d; font-size:25px; margin:0 0 9px; letter-spacing:-.035em; }
+.minimal-placeholder p { max-width:430px; color:#7e8982; font-size:13px; line-height:1.7; margin:0 0 17px; }
+.minimal-status { border-radius:30px; padding:7px 12px; color:#69766e; background:#f1f4f1; font-size:10px; font-weight:700; }
+.minimal-sidebar-note { padding:14px 15px; margin-bottom:13px; border:1px solid rgba(255,255,255,.1); border-radius:10px; display:flex; flex-direction:column; gap:6px; }
+.minimal-sidebar-note span { color:#aab7ae; font-size:9px; letter-spacing:.13em; font-weight:800; }
+.minimal-sidebar-note strong { color:#fff; font-size:12px; }
+.minimal-sidebar-note small { color:#aab7ae; font-size:10px; }
+.minimal-alert { padding:12px 15px; margin-bottom:18px; border:1px solid #e8d9ad; border-radius:9px; background:#fffaf0; color:#725a24; font-size:12px; display:flex; justify-content:space-between; gap:12px; }
+.minimal-alert button { border:0; background:transparent; color:inherit; text-decoration:underline; cursor:pointer; }
+.error-alert { border-color:#edcaca; background:#fff7f7; color:#9a4545; }
+.minimal-page-content .footer { margin-top:45px; }
+.secondary-submit { margin-top:8px; background:#f3f5f3 !important; color:#34433a !important; }
+@media (max-width:1050px) { .minimal-course-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .minimal-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:650px) { .minimal-page-content { padding:22px 16px; } .minimal-welcome { align-items:flex-start; flex-direction:column; margin-bottom:22px; } .minimal-date { white-space:normal; } .minimal-stat-grid,.minimal-course-grid { grid-template-columns:1fr; } .minimal-stat-grid article { min-height:105px; } .minimal-section-heading { align-items:flex-start; } .minimal-record-row,.minimal-record-card { padding:14px; } }

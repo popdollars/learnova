@@ -1,7 +1,9 @@
-﻿services:
+﻿
+services:
   - type: web
     name: learnova-api
     runtime: node
+    plan: free
     rootDir: server
     buildCommand: npm install && npm run build
     startCommand: npm start
