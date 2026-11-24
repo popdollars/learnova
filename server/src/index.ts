@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import express, {
   type ErrorRequestHandler,
@@ -71,7 +71,6 @@ async function activateSession(
       details: error.details,
       hint: error.hint,
     });
-
     throw error;
   }
 
@@ -791,3 +790,4 @@ const shutdown = (signal: string) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
