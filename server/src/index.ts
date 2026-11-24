@@ -1,4 +1,4 @@
-﻿
+
 import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import express, {
@@ -27,6 +27,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
+      "https://learnova-one-psi.vercel.app",
     "http://10.28.168.131:5173",
     "http://10.28.168.131:5174",
   ],
