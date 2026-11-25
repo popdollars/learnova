@@ -1,5 +1,6 @@
 ﻿import "dotenv/config";
 import { randomUUID } from "node:crypto";
+import crypto from "node:crypto";
 import express, {
   type ErrorRequestHandler,
   type Request,
@@ -7,6 +8,7 @@ import express, {
 } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import multer from "multer";
 
 import {
   createAdminSupabaseClient,
@@ -15,7 +17,7 @@ import {
 } from "./lib/supabase.js";
 
 import { requireAuth } from "./middleware/auth.js";
-import { generateAIResponse } from "./lib/aiRouter.js"; // <-- ADDED THIS LINE
+import { generateAIResponse } from "./lib/aiRouter.js";
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
@@ -41,6 +43,8 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: "1mb" }));
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 function readText(value: unknown, maxLength: number): string {
   return typeof value === "string"
@@ -752,9 +756,7 @@ app.post("/api/student/lessons/:lessonId/complete", requireAuth, async (req, res
   }
 });
 
-// ==========================================
-// AI CHAT ROUTE (ADDED HERE)
-// ==========================================
+// AI CHAT ROUTE
 app.post("/api/ai/chat", requireAuth, async (req, res) => {
   const userMessage = req.body.message;
   if (!userMessage || typeof userMessage !== 'string') {
@@ -770,9 +772,76 @@ app.post("/api/ai/chat", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, message: "AI failed to respond." });
   }
 });
-// ==========================================
 
+// ==========================================
+// DOCUMENT UPLOAD & VAULT ROUTE
+// ==========================================
+app.post("/api/documents/upload", requireAuth, upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+    const courseId = req.body.courseId;
+    
+    if (!file) {
+      return res.status(400).json({ success: false, message: "No file uploaded." });
+    }
+
+    const fileHash = crypto.createHash('md5').update(file.buffer).digest('hex');
+    const supabase = res.locals.supabase;
+
+    const { data: existingDoc } = await supabase
+      .from('documents').select('id, file_name, file_path').eq('file_hash', fileHash).maybeSingle();
+
+    if (existingDoc) {
+      return res.status(200).json({ 
+        success: true, message: "File already exists in the shared vault.", document: existingDoc, cached: true 
+      });
+    }
+
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `uploads/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file.buffer, {
+      contentType: file.mimetype, upsert: false
+    });
+
+    if (uploadError) throw uploadError;
+
+    const { data: newDoc, error: dbError } = await supabase.from('documents').insert({
+      course_id: courseId || null,
+      uploader_id: res.locals.user.id,
+      file_name: file.originalname,
+      file_path: filePath,
+      file_hash: fileHash,
+      file_size: file.size,
+      mime_type: file.mimetype
+    }).select().single();
+
+    if (dbError) throw dbError;
+
+    res.status(201).json({ success: true, message: "File uploaded successfully.", document: newDoc });
+  } catch (error: any) {
+    console.error("Upload error:", error);
+    res.status(500).json({ success: false, message: error.message || "Upload failed." });
+  }
+});
+
+// Get all documents
+app.get("/api/documents", requireAuth, async (_req, res) => {
+  try {
+    const supabase = res.locals.supabase;
+    const { data: documents, error } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.status(200).json({ success: true, documents: documents || [] });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Could not fetch documents." });
+  }
+});
+
+// ==========================================
 // UNKNOWN API ROUTES
+// ==========================================
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({
     success: false,

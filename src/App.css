@@ -73,7 +73,7 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
 .profile-info span { color: var(--muted); font-size: 12px; text-transform: capitalize; }
 
 .main-wrapper { flex: 1; min-height: 100vh; margin-left: 260px; min-width: 0; display: flex; position: relative; }
-.center-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; /* Anchor for FAB */ }
+.center-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
 .topbar { height: 76px; position: sticky; z-index: 20; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 36px; background: color-mix(in srgb, var(--surface) 85%, transparent); border-bottom: 1px solid var(--line); backdrop-filter: blur(20px); }
 .header-search { width: min(460px, 50%); margin: 0 auto; }
 .search { min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border: 1px solid transparent; border-radius: 16px; color: var(--muted); background: var(--background); transition: all 0.2s; }
@@ -100,10 +100,8 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
 .welcome-section h1 { font-size: clamp(32px, 4vw, 42px); margin: 0 0 6px 0; letter-spacing: -1.5px; }
 .welcome-section p { margin: 0; color: var(--muted); font-size: 16px; }
 
-/* Desktop Grid: 4 columns */
 .home-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 36px; }
 
-/* The Premium Animated Tile */
 .home-tile { 
   aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; 
   padding: 20px; border-radius: 24px; border: none; color: #fff; text-align: left; cursor: pointer; 
@@ -116,10 +114,7 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
   background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
   opacity: 0; transition: opacity 0.4s ease; transform: scale(0.5);
 }
-.home-tile:hover { 
-  transform: translateY(-8px) scale(1.03); 
-  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2); 
-}
+.home-tile:hover { transform: translateY(-8px) scale(1.03); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2); }
 .home-tile:hover::before { opacity: 1; transform: scale(1); }
 .home-tile:active { transform: translateY(-2px) scale(0.98); }
 .home-tile strong { font-size: 1.2rem; font-weight: 800; margin-top: 16px; letter-spacing: -0.5px; z-index: 1; }
@@ -134,7 +129,6 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
 .tile-timetable { background: var(--tile-orange); color: #182238; }
 .tile-timetable .tile-icon { background: rgba(255,255,255,0.6); }
 
-/* Quick Links */
 .quick-links-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .quick-link-card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; transition: all 0.2s ease; }
 .quick-link-card:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -163,7 +157,7 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
 .icon-btn.send:not(:disabled):hover { transform: scale(1.1); background: var(--brand-dark); }
 .icon-btn.send:disabled { background: var(--line); color: var(--muted); }
 
-/* --- WAKE ME UP (Exam Readiness) --- */
+/* --- WAKE ME UP --- */
 .exam-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; }
 .exam-card { background: var(--surface); border: 1px solid var(--line); border-radius: 32px; padding: 48px; max-width: 600px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
 .exam-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, var(--brand), var(--success)); }
@@ -175,8 +169,7 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
 .exam-stat-item span { font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
 .exam-timer { font-size: 48px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--brand); margin-bottom: 24px; }
 
-/* --- DOCUMENTS PAGE (FAB) --- */
-/* Anchored to the center-panel, bottom right */
+/* --- DOCUMENTS PAGE --- */
 .fab { position: absolute; bottom: 32px; right: 32px; width: 56px; height: 56px; border-radius: 50%; background: var(--brand); color: white; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(102, 88, 232, 0.4); border: none; z-index: 50; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .fab:hover { transform: scale(1.1) translateY(-4px); box-shadow: 0 14px 30px rgba(102, 88, 232, 0.5); }
 .fab:active { transform: scale(0.95); }
@@ -225,7 +218,6 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
   .header-search { display: none; }
   .content { padding: 20px 16px 40px; }
   
-  /* Keep mobile grids as grids */
   .home-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .quick-links-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   
@@ -239,17 +231,18 @@ h1, h2, h3, strong { font-family: 'Bricolage Grotesque', sans-serif; }
   .bn-item { display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: none; color: var(--muted); font-size: 11px; font-weight: 600; }
   .bn-item.active { color: var(--brand); }
   
-  /* Mobile FAB: Fixed to screen bottom */
   .fab { position: fixed; bottom: 100px; right: 20px; width: 52px; height: 52px; }
-}
 
-/* --- AI FULL SCREEN MOBILE MODE --- */
-@media (max-width: 768px) {
+  /* MOBILE CHAT FIX */
   .ai-full-mode .topbar, 
   .ai-full-mode .bottom-nav, 
   .ai-full-mode .sidebar { display: none !important; }
   
-  .ai-full-mode .content { padding: 0; height: 100vh; }
+  .ai-full-mode .content { padding: 0; height: 100dvh; }
   .ai-full-mode .main-wrapper { padding-bottom: 0; }
-  .ai-full-mode .ai-panel { display: flex !important; position: fixed; inset: 0; width: 100%; z-index: 999; }
+  .ai-full-mode .ai-panel { display: flex !important; position: fixed; inset: 0; width: 100%; z-index: 999; height: 100dvh; }
+  
+  .chat.full { height: 100dvh; display: flex; flex-direction: column; }
+  .chat-messages { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+  .chat-input-area { flex-shrink: 0; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 }
