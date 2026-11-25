@@ -1,5 +1,4 @@
-
-import {
+﻿import {
   createContext, useContext, useEffect, useRef, useState,
   type Dispatch, type FormEvent, type ReactNode, type SetStateAction
 } from 'react'
@@ -90,6 +89,7 @@ type AcademicRecord = {
 type ApiResult = {
   success?: boolean
   message?: string
+  reply?: string // Added for AI
   user?: { id: string; email?: string; metadata?: StudentMetadata }
   profile?: { display_name?: string; role?: string; avatar_url?: string | null }
   summary?: any
@@ -120,6 +120,7 @@ type Ctx = {
 
 const AppCtx = createContext<Ctx>(null as unknown as Ctx)
 const useApp = () => useContext(AppCtx)
+
 const rel = (n: number) =>
   n < 0 ? 'Past due' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n} days`
 
@@ -143,25 +144,16 @@ const greetingForTime = () => {
   const hour = new Date().getHours()
   if (hour < 12) return { greeting: 'Good morning', prompt: 'Ready to make today count?' }
   if (hour < 17) return { greeting: 'Good afternoon', prompt: 'What would you like to work on?' }
-  if (hour < 21) return { greeting: 'Good evening', prompt: 'Let�s make some progress before the day ends.' }
-  return { greeting: 'Hello', prompt: 'Taking a late study session? What�s on your mind?' }
+  if (hour < 21) return { greeting: 'Good evening', prompt: 'Let\'s make some progress before the day ends.' }
+  return { greeting: 'Hello', prompt: 'Taking a late study session? What\'s on your mind?' }
 }
 
 const TIMETABLE: Record<string, { t: string; n: string; r: string }[]> = {
-  Monday: [
-    { t: '09:00', n: 'Mathematics', r: 'Room 204' },
-    { t: '13:00', n: 'English', r: 'Room 101' }
-  ],
+  Monday: [{ t: '09:00', n: 'Mathematics', r: 'Room 204' }, { t: '13:00', n: 'English', r: 'Room 101' }],
   Tuesday: [{ t: '11:00', n: 'Physics Lab', r: 'Lab 3' }],
-  Wednesday: [
-    { t: '10:00', n: 'English', r: 'Room 101' },
-    { t: '14:00', n: 'Mathematics', r: 'Room 204' }
-  ],
+  Wednesday: [{ t: '10:00', n: 'English', r: 'Room 101' }, { t: '14:00', n: 'Mathematics', r: 'Room 204' }],
   Thursday: [{ t: '14:00', n: 'Biology', r: 'Room 305' }],
-  Friday: [
-    { t: '09:00', n: 'History', r: 'Room 102' },
-    { t: '11:30', n: 'Physics', r: 'Room 210' }
-  ]
+  Friday: [{ t: '09:00', n: 'History', r: 'Room 102' }, { t: '11:30', n: 'Physics', r: 'Room 210' }]
 }
 
 const ASSIGNMENTS = [
@@ -193,11 +185,11 @@ const NOTIFS0 = [
 
 const QUESTIONS: Record<string, { q: string; o: string[]; a: number }[]> = {
   Mathematics: [
-    { q: 'What is 12 � 12?', o: ['124', '144', '154', '164'], a: 1 },
-    { q: 'What is the derivative of x�?', o: ['x', '2x', 'x�', '2'], a: 1 },
+    { q: 'What is 12 × 12?', o: ['124', '144', '154', '164'], a: 1 },
+    { q: 'What is the derivative of x²?', o: ['x', '2x', 'x³', '2'], a: 1 },
     { q: 'Solve: 2x + 6 = 14', o: ['x = 3', 'x = 4', 'x = 5', 'x = 10'], a: 1 },
-    { q: 'What is the area of a circle with radius 3?', o: ['6p', '9p', '3p', '12p'], a: 1 },
-    { q: 'What is v81?', o: ['7', '8', '9', '10'], a: 2 }
+    { q: 'What is the area of a circle with radius 3?', o: ['6π', '9π', '3π', '12π'], a: 1 },
+    { q: 'What is √81?', o: ['7', '8', '9', '10'], a: 2 }
   ],
   English: [
     { q: 'Which word is closest in meaning to "rapid"?', o: ['Slow', 'Quick', 'Quiet', 'Late'], a: 1 },
@@ -208,8 +200,8 @@ const QUESTIONS: Record<string, { q: string; o: string[]; a: number }[]> = {
   ],
   Physics: [
     { q: 'What is the SI unit of force?', o: ['Joule', 'Watt', 'Newton', 'Pascal'], a: 2 },
-    { q: 'Approximate speed of light?', o: ['3�106 m/s', '3�108 m/s', '3�10�� m/s', '3�104 m/s'], a: 1 },
-    { q: "Newton's second law is�", o: ['E = mc�', 'V = IR', 'F = ma', 'P = mv'], a: 2 },
+    { q: 'Approximate speed of light?', o: ['3×10⁶ m/s', '3×10⁸ m/s', '3×10¹⁰ m/s', '3×10⁴ m/s'], a: 1 },
+    { q: "Newton's second law is…", o: ['E = mc²', 'V = IR', 'F = ma', 'P = mv'], a: 2 },
     { q: 'Which quantity is a vector?', o: ['Mass', 'Speed', 'Velocity', 'Time'], a: 2 },
     { q: 'What is the SI unit of energy?', o: ['Joule', 'Newton', 'Volt', 'Hertz'], a: 0 }
   ],
@@ -271,7 +263,7 @@ function createAuthUser(result: ApiResult): AuthUser {
   }
 }
 
-const Loading = ({ label = 'Loading�' }: { label?: string }) => (
+const Loading = ({ label = 'Loading…' }: { label?: string }) => (
   <div style={{ minHeight: '50vh', display: 'grid', placeItems: 'center', color: 'var(--brand)' }}>
     <LoaderCircle className="spin" size={32} aria-label={label} />
   </div>
@@ -295,9 +287,9 @@ const PageHead = ({ title, sub, right }: { title: string; sub?: string; right?: 
   </div>
 )
 
-// CHAT PANEL
+// CHAT PANEL (Now connected to real AI!)
 function ChatPanel({ full, onClose }: { full?: boolean; onClose?: () => void }) {
-  const { messages, setMessages } = useApp()
+  const { messages, setMessages, api } = useApp()
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
@@ -307,7 +299,7 @@ function ChatPanel({ full, onClose }: { full?: boolean; onClose?: () => void }) 
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, typing])
 
-  function send(text: string) {
+  async function send(text: string) {
     const t = text.trim()
     if (!t || typing) return
 
@@ -315,20 +307,21 @@ function ChatPanel({ full, onClose }: { full?: boolean; onClose?: () => void }) 
     setInput('')
     setTyping(true)
 
-    window.setTimeout(() => {
-      const lower = t.toLowerCase()
-      const reply =
-        lower.includes('quiz') || lower.includes('test')
-          ? 'Open Quick Test to practise with questions from your subjects.'
-          : lower.includes('plan')
-            ? 'Try three focused study sessions this week. Complete a lesson, then test what you remember.'
-            : lower.includes('explain')
-              ? 'Tell me the topic and your level, and I will explain it step by step with an example.'
-              : 'I am ready to help with your studies. Ask a question or attach a document to discuss.'
-
-      setMessages(p => [...p, { role: 'ai', text: reply }])
-      setTyping(false)
-    }, 900)
+    try {
+      const result = await api('/api/ai/chat', { 
+        method: 'POST', 
+        body: JSON.stringify({ message: t }) 
+      })
+      if (result.reply) {
+        setMessages(p => [...p, { role: 'ai', text: result.reply as string }])
+      } else {
+        setMessages(p => [...p, { role: 'ai', text: 'Sorry, I could not process that.' }])
+      }
+    } catch (err) {
+      setMessages(p => [...p, { role: 'ai', text: 'AI is temporarily unavailable. Check your API keys on Render.' }])
+    } finally { 
+      setTyping(false) 
+    }
   }
 
   return (
@@ -345,7 +338,7 @@ function ChatPanel({ full, onClose }: { full?: boolean; onClose?: () => void }) 
         ))}
         {typing && (
           <div className="bubble ai typing" style={{ display: 'flex', gap: 4 }}>
-            <span className="dot">?</span><span className="dot">?</span><span className="dot">?</span>
+            <span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
           </div>
         )}
         <div ref={endRef} />
@@ -563,7 +556,7 @@ function HomePage() {
         </div>
         <div className="quick-link-card" onClick={() => navigate('/records')}>
           <div className="quick-link-icon"><FileText size={20} /></div>
-          <strong>Records</strong><span>{loading ? 'Loading records�' : `${courses.length} courses`}</span>
+          <strong>Records</strong><span>{loading ? 'Loading records…' : `${courses.length} courses`}</span>
         </div>
       </div>
     </div>
@@ -616,7 +609,7 @@ function DocumentsPage() {
         {filtered.map((d, i) => (
           <div className="doc-card" key={d.name + i}>
             <div className="row-icon" style={{ background: '#fff0f0', color: '#DF535B' }}><FileText size={24} /></div>
-            <div className="row-main"><strong>{d.name}</strong><span>{d.size} � {d.cat}</span></div>
+            <div className="row-main"><strong>{d.name}</strong><span>{d.size} • {d.cat}</span></div>
             <button className="icon-btn" aria-label={`Options for ${d.name}`}><MoreVertical size={20} /></button>
           </div>
         ))}
@@ -713,7 +706,7 @@ function QuickTestPage() {
   )
 }
 
-// WAKE ME UP � TIMED ALERTNESS CHALLENGE
+// WAKE ME UP — TIMED ALERTNESS CHALLENGE
 function WakeUpPage() {
   const [state, setState] = useState<'intro' | 'test' | 'result'>('intro')
   const [questions, setQuestions] = useState<{ q: string; o: string[]; a: number; subject: string }[]>([])
@@ -983,6 +976,7 @@ function LessonPage() {
   const navigate = useNavigate()
   const [data, setData] = useState<ApiResult | null>(null)
   const [error, setError] = useState('')
+  const [completing, setCompleting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -992,15 +986,42 @@ function LessonPage() {
     return () => { cancelled = true }
   }, [lessonId, api])
 
+  const markComplete = async () => {
+    setCompleting(true)
+    try {
+      await api(`/api/student/lessons/${encodeURIComponent(lessonId)}/complete`, { method: 'POST' })
+      setData(prev => prev ? { ...prev, completed: true } : null)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not mark lesson complete.')
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   if (error) return <Empty title="Could not load lesson" hint={error} />
   if (!data?.lesson) return <Loading />
+
+  const isCompleted = data.completed
 
   return (
     <div className="page">
       <button className="back" onClick={() => navigate(`/modules/${data.lesson?.course_id}`)}>
         <ArrowLeft size={16} />Back to module
       </button>
-      <PageHead title={data.lesson.title} />
+      <PageHead 
+        title={data.lesson.title} 
+        right={
+          isCompleted ? (
+            <span className="badge success" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px' }}>
+              <Award size={16} /> Completed
+            </span>
+          ) : (
+            <button className="btn" onClick={markComplete} disabled={completing}>
+              {completing ? 'Saving...' : 'Mark as Complete'}
+            </button>
+          )
+        }
+      />
       <div className="card" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
         {data.lesson.content || 'No lesson content is available yet.'}
       </div>
@@ -1019,7 +1040,7 @@ function TimeTablePage() {
             <h3>{day}</h3>
             {classes.map(item => (
               <p key={item.t} style={{ color: 'var(--muted)', fontSize: 14 }}>
-                {item.t} - {item.n} � {item.r}
+                {item.t} - {item.n} • {item.r}
               </p>
             ))}
           </div>
@@ -1042,7 +1063,7 @@ function AssignmentsPage() {
             }}>
               <ClipboardList size={20} />
             </div>
-            <div className="row-main"><strong>{a.title}</strong><span>{a.course} � Due {rel(a.off)}</span></div>
+            <div className="row-main"><strong>{a.title}</strong><span>{a.course} • Due {rel(a.off)}</span></div>
             <span className={`badge ${a.status === 'graded' ? 'success' : 'warn'}`}>
               {a.status === 'graded' ? a.grade : 'Pending'}
             </span>
@@ -1061,7 +1082,7 @@ function UpcomingPage() {
         {UPCOMING.map(u => (
           <div className="doc-card" key={u.title}>
             <div className="row-icon"><Clock size={20} /></div>
-            <div className="row-main"><strong>{u.title}</strong><span>{u.type} � {rel(u.off)}</span></div>
+            <div className="row-main"><strong>{u.title}</strong><span>{u.type} • {rel(u.off)}</span></div>
           </div>
         ))}
       </div>
@@ -1100,7 +1121,7 @@ function WorkWithMePage() {
           <div className="card" key={t.name}>
             <div className="row-icon" style={{ marginBottom: 16 }}><User size={24} /></div>
             <h3>{t.name}</h3>
-            <p style={{ color: 'var(--muted)', marginBottom: 16 }}>{t.subject} � {t.rate}</p>
+            <p style={{ color: 'var(--muted)', marginBottom: 16 }}>{t.subject} • {t.rate}</p>
             <button className="btn soft" style={{ width: '100%', background: 'var(--brand-soft)', border: 'none' }}>
               Request Session
             </button>
@@ -1126,7 +1147,7 @@ function ExplorePage() {
           <div className="card" key={r.title}>
             <div className="row-icon" style={{ marginBottom: 16 }}><Compass size={24} /></div>
             <h3>{r.title}</h3>
-            <p style={{ color: 'var(--muted)' }}>{r.type} � {r.time}</p>
+            <p style={{ color: 'var(--muted)' }}>{r.type} • {r.time}</p>
           </div>
         ))}
       </div>
@@ -1254,7 +1275,7 @@ function AuthScreen({
           {mode === 'register' && (
             <>
               <input required placeholder="Full Name" value={f.name} onChange={set('name')} style={{ padding: 14, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--background)' }} />
-              <input placeholder="Phone Number" value={f.phone} onChange={set('phone')} style={{ padding: 14, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--background)' }} />
+              <input placeholder="Phone Number (+1234567890)" value={f.phone} onChange={set('phone')} style={{ padding: 14, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--background)' }} />
               <input placeholder="Address" value={f.address} onChange={set('address')} style={{ padding: 14, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--background)' }} />
               <input placeholder="Institution" value={f.institution} onChange={set('institution')} style={{ padding: 14, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--background)' }} />
               <input placeholder="Faculty" value={f.faculty} onChange={set('faculty')} style={{ padding: 14, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--background)' }} />
@@ -1279,7 +1300,7 @@ function AuthScreen({
           </div>
 
           <button type="submit" className="btn" style={{ marginTop: 8 }} disabled={busy}>
-            {busy ? 'Please wait�' : mode === 'login' ? 'Sign In' : 'Register'}
+            {busy ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Register'}
           </button>
         </form>
 
@@ -1516,4 +1537,3 @@ export default function App() {
     </BrowserRouter>
   )
 }
-

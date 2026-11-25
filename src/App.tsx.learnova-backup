@@ -1,0 +1,493 @@
+﻿import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  GraduationCap, LayoutDashboard, BookOpen, CalendarDays, BrainCircuit,
+  Bookmark, Search, ArrowUpRight, CheckCircle2, Menu, X,
+  LogOut, LockKeyhole, Mail, User, LoaderCircle, Target, Layers,
+  FileText, Settings, Smartphone
+} from 'lucide-react'
+import './App.css'
+import './Auth.css'
+import './LearnovaData.css'
+
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:4000`
+
+type AuthUser = {
+  id: string
+  email: string
+  display_name?: string
+  role?: string
+  avatar_url?: string | null
+}
+
+type AuthResponse = {
+  success?: boolean
+  message?: string
+  requiresEmailConfirmation?: boolean
+  session?: { access_token?: string; refresh_token?: string; session_id?: string }
+  access_token?: string
+  session_id?: string
+}
+
+type ApiResult = {
+  success?: boolean
+  message?: string
+  requiresEmailConfirmation?: boolean
+  access_token?: string
+  session_id?: string
+  session?: { access_token?: string; refresh_token?: string; session_id?: string }
+  user?: { id: string; email?: string }
+  profile?: { display_name?: string; role?: string; avatar_url?: string | null }
+  student?: Record<string, unknown>
+  summary?: {
+    enrolled_courses?: number
+    completed_lessons?: number
+    academic_records?: number
+    average_performance?: number
+  }
+  courses?: DashboardCourse[]
+  academic_records?: AcademicRecord[]
+}
+
+type DashboardCourse = {
+  id: string
+  title: string
+  code?: string | null
+  description?: string | null
+  total_lessons?: number
+  completed_lessons?: number
+  progress?: number
+  progress_percentage?: number
+}
+
+type AcademicRecord = {
+  id: string
+  course_id?: string
+  assessment_name?: string
+  score?: number
+  max_score?: number
+  feedback?: string | null
+  recorded_at?: string
+}
+
+const navigation = [
+  { label: 'Overview', icon: LayoutDashboard },
+  { label: 'My courses', icon: BookOpen },
+  { label: 'Academic records', icon: FileText },
+  { label: 'Study planner', icon: CalendarDays },
+  { label: 'AI tutor', icon: BrainCircuit },
+  { label: 'Saved materials', icon: Bookmark },
+]
+
+function getDeviceLabel() {
+  const ua = navigator.userAgent
+  if (/Android/i.test(ua)) return 'Android device'
+  if (/iPhone|iPad/i.test(ua)) return 'Apple mobile device'
+  if (/Windows/i.test(ua)) return 'Windows computer'
+  if (/Mac/i.test(ua)) return 'Mac computer'
+  return 'Web browser'
+}
+
+function formatDate(value?: string) {
+  if (!value) return 'Date unavailable'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? 'Date unavailable'
+    : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const EMPTY_DASHBOARD_COURSES: never[] = []
+
+function App() {
+  const [accessToken, setAccessToken] = useState('')
+  const [sessionId, setSessionId] = useState('')
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [registerName, setRegisterName] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
+  const [verificationChannel, setVerificationChannel] = useState<'email' | 'sms'>('email')
+  const [authError, setAuthError] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
+  const [verificationPending, setVerificationPending] = useState(false)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [activePage, setActivePage] = useState('Overview')
+  const [search, setSearch] = useState('')
+  const [mobileMenu, setMobileMenu] = useState(false)
+  const [dashboard, setDashboard] = useState<ApiResult | null>(null)
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [dashboardError, setDashboardError] = useState('')
+
+  async function apiRequest(path: string, options: RequestInit = {}, token?: string, currentSession?: string): Promise<ApiResult> {
+    const headers = new Headers(options.headers)
+    if (options.body) headers.set('Content-Type', 'application/json')
+    if (token) headers.set('Authorization', `Bearer ${token}`)
+    if (currentSession) headers.set('x-learnova-session', currentSession)
+
+    const response = await fetch(`${API_URL}${path}`, { ...options, headers })
+    const result = await response.json().catch(() => ({})) as ApiResult
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || `Request failed (${response.status}).`)
+    }
+    return result
+  }
+
+  function saveSession(token: string, id: string) {
+    sessionStorage.setItem('learnova_access_token', token)
+    sessionStorage.setItem('learnova_session_id', id)
+    setAccessToken(token)
+    setSessionId(id)
+  }
+
+  function clearSession() {
+    sessionStorage.removeItem('learnova_access_token')
+    sessionStorage.removeItem('learnova_session_id')
+    setAccessToken('')
+    setSessionId('')
+    setUser(null)
+    setDashboard(null)
+  }
+
+  async function loadProfile(token: string, id: string) {
+    const result = await apiRequest('/api/auth/me', {}, token, id)
+    if (!result.user?.id) throw new Error('Your account profile could not be loaded.')
+    setUser({
+      id: result.user.id,
+      email: result.user.email || '',
+      display_name: result.profile?.display_name || '',
+      role: result.profile?.role || 'student',
+      avatar_url: result.profile?.avatar_url || null,
+    })
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    async function restoreSession() {
+      const token = sessionStorage.getItem('learnova_access_token')
+      const id = sessionStorage.getItem('learnova_session_id')
+      if (!token || !id) {
+        if (!cancelled) setAuthLoading(false)
+        return
+      }
+      try {
+        const result = await apiRequest('/api/auth/me', {}, token, id)
+        if (cancelled) return
+        if (!result.user?.id) throw new Error('Invalid session')
+        setAccessToken(token)
+        setSessionId(id)
+        setUser({
+          id: result.user.id,
+          email: result.user.email || '',
+          display_name: result.profile?.display_name || '',
+          role: result.profile?.role || 'student',
+          avatar_url: result.profile?.avatar_url || null,
+        })
+      } catch {
+        if (!cancelled) {
+          clearSession()
+          setAuthNotice('Your session expired or was replaced by a sign-in on another device. Please sign in again.')
+        }
+      } finally {
+        if (!cancelled) setAuthLoading(false)
+      }
+    }
+    void restoreSession()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!user || !accessToken || !sessionId) return
+    let cancelled = false
+    async function loadDashboard() {
+      setDashboardLoading(true)
+      setDashboardError('')
+      try {
+        const result = await apiRequest('/api/student/dashboard', {}, accessToken, sessionId)
+        if (!cancelled) setDashboard(result)
+      } catch (error) {
+        if (!cancelled) setDashboardError(error instanceof Error ? error.message : 'Could not load your student data.')
+      } finally {
+        if (!cancelled) setDashboardLoading(false)
+      }
+    }
+    void loadDashboard()
+    return () => { cancelled = true }
+  }, [user, accessToken, sessionId])
+
+  async function handleAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setAuthError('')
+    setAuthNotice('')
+    if (!email.trim() || !password) {
+      setAuthError('Enter your email address and password.')
+      return
+    }
+    if (authMode === 'register') {
+      if (!registerName.trim()) return setAuthError('Enter your full name.')
+      if (!registerPhone.trim()) return setAuthError('A phone number is required for every student account.')
+      if (password.length < 8) return setAuthError('Use a password with at least 8 characters.')
+    }
+
+    setSubmitting(true)
+    try {
+      const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register'
+      const body = authMode === 'login'
+        ? { email: email.trim(), password, deviceLabel: getDeviceLabel() }
+        : {
+            email: email.trim(),
+            password,
+            displayName: registerName.trim(),
+            phoneNumber: registerPhone.trim(),
+            verificationChannel,
+            redirectTo: window.location.origin,
+            deviceLabel: getDeviceLabel(),
+          }
+
+      const result = await apiRequest(endpoint, { method: 'POST', body: JSON.stringify(body) }) as AuthResponse
+      const token = result.session?.access_token || result.access_token
+      const id = result.session_id || result.session?.session_id
+      if (!token || !id) {
+        if (authMode === 'register' && result.requiresEmailConfirmation) {
+          setVerificationPending(true)
+          setVerificationCode('')
+          setAuthNotice(result.message || `Check ${email.trim()} for your verification code.`)
+          setPassword('')
+          return
+        }
+        throw new Error(result.message || 'The server did not return an active session.')
+      }
+      saveSession(token, id)
+      await loadProfile(token, id)
+      setPassword('')
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Authentication failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setAuthError('')
+    setSubmitting(true)
+    try {
+      const result = await apiRequest('/api/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim(), token: verificationCode.trim(), deviceLabel: getDeviceLabel() }),
+      })
+      const token = result.session?.access_token || result.access_token
+      const id = result.session_id || result.session?.session_id
+      if (!token || !id) throw new Error(result.message || 'Verification did not return a valid session.')
+      saveSession(token, id)
+      setVerificationPending(false)
+      setVerificationCode('')
+      await loadProfile(token, id)
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Email verification failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleResendVerification() {
+    setAuthError('')
+    setAuthNotice('')
+    setSubmitting(true)
+    try {
+      const result = await apiRequest('/api/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      setAuthNotice(result.message || 'Check your email for a new verification code.')
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Could not resend the verification code.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      if (accessToken && sessionId) {
+        await apiRequest('/api/auth/logout', { method: 'POST' }, accessToken, sessionId)
+      }
+    } catch (error) {
+      console.error('Logout request:', error)
+    } finally {
+      clearSession()
+      setActivePage('Overview')
+      setAuthNotice('You have been signed out.')
+    }
+  }
+
+  function navigate(page: string) {
+    setActivePage(page)
+    setMobileMenu(false)
+  }
+
+  const courses = dashboard?.courses ?? EMPTY_DASHBOARD_COURSES
+  const records = dashboard?.academic_records || []
+  const summary = dashboard?.summary
+  const filteredCourses = useMemo(() => courses.filter(course =>
+    `${course.title} ${course.code || ''} ${course.description || ''}`.toLowerCase().includes(search.toLowerCase())
+  ), [courses, search])
+
+  const displayName = user?.display_name || user?.email.split('@')[0] || 'Student'
+  const initials = displayName.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase()
+
+  if (authLoading) {
+    return <div className="auth-loading"><LoaderCircle className="auth-spinner" size={34} /><strong>Preparing your Learnova workspace...</strong><span>Checking your active session</span></div>
+  }
+
+  if (!user) {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <div className="brand-icon"><GraduationCap size={27} /></div>
+            <div><strong>Learnova</strong><span>LEARN Â· GROW Â· EXCEL</span></div>
+          </div>
+          <div className="auth-heading">
+            <span className="auth-eyebrow"><BookOpen size={14} /> YOUR LEARNING SPACE</span>
+            <h1>{verificationPending ? 'Verify your email.' : authMode === 'login' ? 'Welcome back.' : 'Create your account.'}</h1>
+            <p>{authMode === 'login' ? 'Sign in to continue your learning journey.' : 'Create your student account and get started.'}</p>
+          </div>
+          {authNotice && <div className="auth-notice">{authNotice}</div>}
+          {authError && <div className="auth-error">{authError}</div>}
+          {verificationPending ? (
+            <form className="auth-form" onSubmit={handleVerifyEmail}>
+              <label><span>Six-digit verification code</span><div className="auth-input-wrap"><Mail size={17} /><input inputMode="numeric" autoComplete="one-time-code" value={verificationCode} onChange={event => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter your 6-digit code" maxLength={6} pattern="[0-9]{6}" required /></div></label>
+              <button className="auth-submit" type="submit" disabled={submitting || verificationCode.length !== 6}>{submitting ? 'Verifying...' : 'Verify email'}</button>
+              <button className="auth-submit secondary-submit" type="button" disabled={submitting} onClick={handleResendVerification}>Resend verification code</button>
+            </form>
+          ) : (
+            <form className="auth-form" onSubmit={handleAuth}>
+              {authMode === 'register' && <>
+                <label><span>Your name</span><div className="auth-input-wrap"><User size={17} /><input value={registerName} onChange={event => setRegisterName(event.target.value)} placeholder="Enter your full name" autoComplete="name" required /></div></label>
+                <label><span>Phone number</span><div className="auth-input-wrap"><Smartphone size={17} /><input type="tel" value={registerPhone} onChange={event => setRegisterPhone(event.target.value)} placeholder="+2507XXXXXXXX" autoComplete="tel" required /></div></label>
+                <label><span>Preferred verification method</span><select value={verificationChannel} onChange={event => setVerificationChannel(event.target.value as 'email' | 'sms')}><option value="email">Email</option><option value="sms" disabled>SMS (not available yet)</option></select></label>
+              </>}
+              <label><span>Email address</span><div className="auth-input-wrap"><Mail size={17} /><input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></div></label>
+              <label><span>Password</span><div className="auth-input-wrap"><LockKeyhole size={17} /><input type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="At least 8 characters" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={authMode === 'register' ? 8 : undefined} required /></div></label>
+              <button className="auth-submit" type="submit" disabled={submitting}>{submitting ? <><LoaderCircle size={17} className="auth-spinner" /> Please wait...</> : <>{authMode === 'login' ? 'Sign in to Learnova' : 'Create account'} <ArrowUpRight size={17} /></>}</button>
+            </form>
+          )}
+          <div className="auth-switch">
+            {authMode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+            <button type="button" onClick={() => { setVerificationPending(false); setVerificationCode(''); setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); setAuthNotice('') }}>
+              {authMode === 'login' ? 'Create one' : 'Sign in'}
+            </button>
+          </div>
+          <div className="auth-security"><LockKeyhole size={14} /> Your account is protected by Learnova session security.</div>
+        </div>
+        <div className="auth-footer">Â© 2026 Learnova. Learn Â· Grow Â· Excel.</div>
+      </div>
+    )
+  }
+
+  const average = Number(summary?.average_performance || 0)
+  const enrolled = Number(summary?.enrolled_courses ?? courses.length)
+  const completed = Number(summary?.completed_lessons || 0)
+
+  function renderCourseCard(course: DashboardCourse) {
+    const total = Number(course.total_lessons || 0)
+    const done = Number(course.completed_lessons || 0)
+    const progress = Math.max(0, Math.min(100, Number(course.progress_percentage ?? course.progress ?? (total ? done / total * 100 : 0))))
+    return (
+      <article className="minimal-course-card" key={course.id}>
+        <div className="minimal-course-mark"><BookOpen size={20} /></div>
+        <div className="minimal-course-main">
+          <span className="minimal-muted">{course.code || 'COURSE'}</span>
+          <h3>{course.title}</h3>
+          {course.description && <p>{course.description}</p>}
+          <div className="minimal-progress-meta"><span>{total ? `${done} of ${total} lessons completed` : 'Lesson count not available'}</span><strong>{Math.round(progress)}%</strong></div>
+          <div className="minimal-progress"><span style={{ width: `${progress}%` }} /></div>
+        </div>
+      </article>
+    )
+  }
+
+  function renderOverview() {
+    return <>
+      <section className="minimal-welcome">
+        <div><span className="minimal-eyebrow">YOUR LEARNING SPACE</span><h1>Welcome back, {displayName.split(' ')[0]}.</h1><p>Your learning progress, courses and academic results in one place.</p></div>
+        <span className="minimal-date">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+      </section>
+      {dashboardError && <div className="minimal-alert error-alert">{dashboardError} <button onClick={() => setDashboardError('')}>Dismiss</button></div>}
+      <section className="minimal-stat-grid">
+        <article><span>Enrolled courses</span><strong>{dashboardLoading ? 'â€”' : enrolled}</strong><small>Active course enrolments</small></article>
+        <article><span>Completed lessons</span><strong>{dashboardLoading ? 'â€”' : completed}</strong><small>Recorded in your account</small></article>
+        <article><span>Academic records</span><strong>{dashboardLoading ? 'â€”' : Number(summary?.academic_records || records.length)}</strong><small>Assessments recorded</small></article>
+        <article><span>Average performance</span><strong>{dashboardLoading || !records.length ? 'â€”' : `${average.toFixed(1)}%`}</strong><small>{records.length ? 'Based on recorded assessments' : 'No assessment data yet'}</small></article>
+      </section>
+      <section className="minimal-section">
+        <div className="minimal-section-heading"><div><span className="minimal-eyebrow">YOUR STUDIES</span><h2>Continue learning</h2></div><button className="minimal-text-button" onClick={() => navigate('My courses')}>All courses <ArrowUpRight size={16} /></button></div>
+        {dashboardLoading ? <div className="minimal-empty">Loading your courses...</div> : courses.length ? <div className="minimal-course-grid">{courses.slice(0, 3).map(renderCourseCard)}</div> : <div className="minimal-empty"><BookOpen size={22} /><strong>No enrolled courses yet</strong><span>Your published and enrolled courses will appear here.</span></div>}
+      </section>
+      <section className="minimal-section">
+        <div className="minimal-section-heading"><div><span className="minimal-eyebrow">ACADEMIC PERFORMANCE</span><h2>Recent results</h2></div><button className="minimal-text-button" onClick={() => navigate('Academic records')}>View records <ArrowUpRight size={16} /></button></div>
+        {records.length ? <div className="minimal-record-list">{records.slice(0, 4).map(record => <div className="minimal-record-row" key={record.id}><div><strong>{record.assessment_name || 'Assessment'}</strong><span>{formatDate(record.recorded_at)}</span></div><strong>{record.max_score ? `${record.score ?? 0} / ${record.max_score}` : record.score ?? 'â€”'}</strong></div>)}</div> : <div className="minimal-empty">Your academic results will appear here when they are recorded.</div>}
+      </section>
+    </>
+  }
+
+  function renderCourses() {
+    return <section className="minimal-section">
+      <div className="minimal-section-heading"><div><span className="minimal-eyebrow">LEARNING</span><h2>My courses</h2><p>Courses linked to your student account.</p></div><span className="minimal-count">{courses.length} courses</span></div>
+      {dashboardLoading ? <div className="minimal-empty">Loading your courses...</div> : filteredCourses.length ? <div className="minimal-course-grid">{filteredCourses.map(renderCourseCard)}</div> : <div className="minimal-empty"><BookOpen size={22} /><strong>{search ? 'No matching courses' : 'No enrolled courses yet'}</strong><span>{search ? 'Try a different course name or code.' : 'When you are enrolled in a course, it will appear here.'}</span></div>}
+    </section>
+  }
+
+  function renderRecords() {
+    return <section className="minimal-section">
+      <div className="minimal-section-heading"><div><span className="minimal-eyebrow">RESULTS</span><h2>Academic records</h2><p>Your recorded assessments and performance.</p></div></div>
+      {records.length ? <div className="minimal-record-list">{records.map(record => {
+        const pct = record.max_score ? Number(record.score || 0) / Number(record.max_score) * 100 : null
+        return <article className="minimal-record-card" key={record.id}><div><span className="minimal-muted">{formatDate(record.recorded_at)}</span><h3>{record.assessment_name || 'Assessment'}</h3><p>{record.feedback || 'No instructor feedback provided.'}</p></div><div className="minimal-score"><strong>{record.max_score ? `${record.score ?? 0}/${record.max_score}` : record.score ?? 'â€”'}</strong>{pct !== null && <span>{pct.toFixed(1)}%</span>}</div></article>
+      })}</div> : <div className="minimal-empty"><FileText size={22} /><strong>No academic records yet</strong><span>Assessment results will be displayed here once recorded.</span></div>}
+    </section>
+  }
+
+  function renderPlaceholder(title: string, description: string) {
+    return <section className="minimal-placeholder"><div className="minimal-placeholder-icon"><Layers size={24} /></div><span className="minimal-eyebrow">LEARNOVA WORKSPACE</span><h2>{title}</h2><p>{description}</p><span className="minimal-status">Not connected yet</span></section>
+  }
+
+  let pageContent
+  switch (activePage) {
+    case 'Overview': pageContent = renderOverview(); break
+    case 'My courses': pageContent = renderCourses(); break
+    case 'Academic records': pageContent = renderRecords(); break
+    case 'Study planner': pageContent = renderPlaceholder('Study planner', 'Your personal timetable and assignment calendar will appear here when planner services are connected.'); break
+    case 'AI tutor': pageContent = renderPlaceholder('AI study tutor', 'The AI tutor is not connected yet. It will be enabled when the academic resource library and tutor service are ready.'); break
+    case 'Saved materials': pageContent = renderPlaceholder('Saved materials', 'Learning resources you save will be collected here once the materials library is available.'); break
+    case 'Flashcards': pageContent = renderPlaceholder('Flashcards', 'Your study-card workspace will be available when the learning tools service is connected.'); break
+    case 'Practice tests': pageContent = renderPlaceholder('Practice tests', 'Practice assessments will appear here when the testing service is ready.'); break
+    case 'Settings': pageContent = <section className="minimal-section"><span className="minimal-eyebrow">ACCOUNT</span><h2>Account settings</h2><div className="minimal-record-list"><div className="minimal-record-row"><div><strong>Name</strong><span>Your registered display name</span></div><strong>{displayName}</strong></div><div className="minimal-record-row"><div><strong>Email</strong><span>Your account email</span></div><strong>{user.email}</strong></div><div className="minimal-record-row"><div><strong>Account role</strong><span>Learnova access level</span></div><strong>{user.role || 'Student'}</strong></div></div></section>; break
+    default: pageContent = renderPlaceholder(activePage, 'This section will be enabled when its service is connected.')
+  }
+
+  return <div className="app-shell minimal-app">
+    {mobileMenu && <button className="mobile-overlay" aria-label="Close menu" onClick={() => setMobileMenu(false)} />}
+    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}>
+      <div className="brand"><div className="brand-icon"><GraduationCap size={25} /></div><div><strong>Learnova</strong><span>LEARN Â· GROW Â· EXCEL</span></div><button className="close-menu" onClick={() => setMobileMenu(false)} aria-label="Close menu"><X /></button></div>
+      <div className="nav-label">WORKSPACE</div>
+      <nav className="main-nav">{navigation.map(item => { const Icon = item.icon; return <button key={item.label} className={`nav-item ${activePage === item.label ? 'active' : ''}`} onClick={() => navigate(item.label)}><Icon size={19} /><span>{item.label}</span></button> })}</nav>
+      <div className="nav-label tools-label">STUDY TOOLS</div>
+      <button className={`nav-item ${activePage === 'Flashcards' ? 'active' : ''}`} onClick={() => navigate('Flashcards')}><Layers size={19} /><span>Flashcards</span></button>
+      <button className={`nav-item ${activePage === 'Practice tests' ? 'active' : ''}`} onClick={() => navigate('Practice tests')}><Target size={19} /><span>Practice tests</span></button>
+      <div className="sidebar-bottom"><div className="minimal-sidebar-note"><span>YOUR PROGRESS</span><strong>{dashboardLoading ? 'Updatingâ€¦' : `${enrolled} enrolled courses`}</strong><small>Synced from your Learnova account</small></div><button className="profile-mini" onClick={() => navigate('Settings')}><div className="avatar">{initials}</div><div className="profile-info"><strong>{displayName}</strong><span>{user.role || 'Student'} account</span></div><Settings size={18} /></button></div>
+    </aside>
+    <main className="main-area">
+      <header className="topbar"><div className="topbar-left"><button className="menu-button" onClick={() => setMobileMenu(true)} aria-label="Open menu"><Menu /></button><div className="breadcrumb">Workspace <span>/</span> <strong>{activePage}</strong></div></div><div className="topbar-actions"><label className="search-box"><Search size={18} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search your courses..." /><kbd>/</kbd></label><button className="top-profile" onClick={handleLogout} title="Sign out"><div className="avatar">{initials}</div><LogOut size={16} /></button></div></header>
+      <div className="page-content minimal-page-content">
+        {pageContent}
+        <footer className="footer"><span>Â© 2026 Learnova. Learn Â· Grow Â· Excel.</span><button className="logout-footer" onClick={handleLogout}><LogOut size={14} /> Sign out</button><span><CheckCircle2 size={14} /> Your learning workspace</span></footer>
+      </div>
+    </main>
+  </div>
+}
+
+export default App
+

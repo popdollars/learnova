@@ -1,0 +1,11 @@
+warning: in the working copy of 'server/src/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/src/lib/supabase.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/App.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/Auth.css', LF will be replaced by CRLF the next time Git touches it
+ server/src/index.ts        | 590 [32m+++++++++++++++++++++[m[31m---------[m
+ server/src/lib/supabase.ts |  20 [32m+[m[31m-[m
+ src/App.css                | 562 [32m+++++++++++++++++++[m[31m----------[m
+ src/App.tsx                | 877 [32m++++++++++++[m[31m---------------------------------[m
+ src/Auth.css               | 360 [32m+++[m[31m----------------[m
+ 5 files changed, 1105 insertions(+), 1304 deletions(-)

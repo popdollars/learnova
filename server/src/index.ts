@@ -15,6 +15,7 @@ import {
 } from "./lib/supabase.js";
 
 import { requireAuth } from "./middleware/auth.js";
+import { generateAIResponse } from "./lib/aiRouter.js"; // <-- ADDED THIS LINE
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
@@ -230,7 +231,6 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
       return;
     }
 
-    // Sign in immediately. No OTP or confirmation step.
     const client = createPublicSupabaseClient();
 
     const { data, error } = await client.auth.signInWithPassword({
@@ -246,7 +246,6 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
       return;
     }
 
-    // Preserve Learnova's existing device/session security.
     const sessionInfo = await activateSession(
       data.session.access_token,
       deviceLabel,
@@ -753,6 +752,26 @@ app.post("/api/student/lessons/:lessonId/complete", requireAuth, async (req, res
   }
 });
 
+// ==========================================
+// AI CHAT ROUTE (ADDED HERE)
+// ==========================================
+app.post("/api/ai/chat", requireAuth, async (req, res) => {
+  const userMessage = req.body.message;
+  if (!userMessage || typeof userMessage !== 'string') {
+    return res.status(400).json({ success: false, message: "Message is required." });
+  }
+  
+  try {
+    const systemPrompt = "You are Jonathan, an expert AI study partner for Learnova. Keep your answers extremely concise. Focus on core concepts, simple examples, and analogies. Use bullet points where possible.";
+    const aiResponse = await generateAIResponse(userMessage, systemPrompt);
+    res.status(200).json({ success: true, reply: aiResponse });
+  } catch (error) {
+    console.error("AI Chat error:", error);
+    res.status(500).json({ success: false, message: "AI failed to respond." });
+  }
+});
+// ==========================================
+
 // UNKNOWN API ROUTES
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({
@@ -790,4 +809,3 @@ const shutdown = (signal: string) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-
