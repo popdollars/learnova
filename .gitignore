@@ -2,3 +2,9 @@
 server/.env
 node_modules
 dist
+*.zip
+*.log
+*.learnova-backup
+*.zip
+*.log
+*.learnova-backup
