@@ -89,7 +89,7 @@ type AcademicRecord = {
 type ApiResult = {
   success?: boolean
   message?: string
-  reply?: string // Added for AI
+  reply?: string
   user?: { id: string; email?: string; metadata?: StudentMetadata }
   profile?: { display_name?: string; role?: string; avatar_url?: string | null }
   summary?: any
@@ -287,7 +287,7 @@ const PageHead = ({ title, sub, right }: { title: string; sub?: string; right?: 
   </div>
 )
 
-// CHAT PANEL (Now connected to real AI!)
+// CHAT PANEL (Connected to real AI)
 function ChatPanel({ full, onClose }: { full?: boolean; onClose?: () => void }) {
   const { messages, setMessages, api } = useApp()
   const [input, setInput] = useState('')
@@ -318,7 +318,7 @@ function ChatPanel({ full, onClose }: { full?: boolean; onClose?: () => void }) 
         setMessages(p => [...p, { role: 'ai', text: 'Sorry, I could not process that.' }])
       }
     } catch (err) {
-      setMessages(p => [...p, { role: 'ai', text: 'AI is temporarily unavailable. Check your API keys on Render.' }])
+      setMessages(p => [...p, { role: 'ai', text: 'AI is temporarily unavailable.' }])
     } finally { 
       setTyping(false) 
     }
