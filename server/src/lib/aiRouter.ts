@@ -1,4 +1,4 @@
-﻿
+
 export async function generateAIResponse(
   prompt: string,
   systemPrompt: string
@@ -8,9 +8,7 @@ export async function generateAIResponse(
     { role: "user", content: prompt },
   ];
 
-  const errors: string[] = [];
-
-  // 1. GROQ
+  // PRIMARY: GROQ
   if (process.env.GROQ_API_KEY) {
     try {
       console.log("[AI ROUTER] Trying Groq...");
@@ -24,7 +22,7 @@ export async function generateAIResponse(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
+            model: "openai/gpt-oss-20b",
             messages,
           }),
         }
@@ -33,9 +31,7 @@ export async function generateAIResponse(
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error?.message || `Groq HTTP ${response.status}`
-        );
+        throw new Error(data.error?.message || `HTTP ${response.status}`);
       }
 
       const answer = data.choices?.[0]?.message?.content;
@@ -45,17 +41,13 @@ export async function generateAIResponse(
         return answer;
       }
 
-      throw new Error("Groq returned an empty response.");
+      throw new Error("Empty response from Groq.");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
-
-      errors.push(`Groq: ${message}`);
-      console.error("[AI ROUTER] Groq failed:", message);
+      console.error("[AI ROUTER] Groq failed:", error);
     }
   }
 
-  // 2. OPENROUTER FALLBACK
+  // FALLBACK: OPENROUTER
   if (process.env.OPENROUTER_API_KEY) {
     try {
       console.log("[AI ROUTER] Trying OpenRouter...");
@@ -80,9 +72,7 @@ export async function generateAIResponse(
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error?.message || `OpenRouter HTTP ${response.status}`
-        );
+        throw new Error(data.error?.message || `HTTP ${response.status}`);
       }
 
       const answer = data.choices?.[0]?.message?.content;
@@ -92,17 +82,12 @@ export async function generateAIResponse(
         return answer;
       }
 
-      throw new Error("OpenRouter returned an empty response.");
+      throw new Error("Empty response from OpenRouter.");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
-
-      errors.push(`OpenRouter: ${message}`);
-      console.error("[AI ROUTER] OpenRouter failed:", message);
+      console.error("[AI ROUTER] OpenRouter failed:", error);
     }
   }
 
-  throw new Error(
-    `All AI providers failed. ${errors.join(" | ") || "No API keys configured."}`
-  );
+  throw new Error("All AI providers failed.");
 }
+
